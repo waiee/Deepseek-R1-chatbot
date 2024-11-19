@@ -1,4 +1,4 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, HuggingFaceHub
 
 model = "HuggingFaceH4/starchat-beta"
 llm = HuggingFaceHub(repo_id=model ,
