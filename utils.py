@@ -15,14 +15,18 @@ def initialize_session_state():
     if "document_embeddings" not in st.session_state:
         st.session_state.document_embeddings = None
 
-    # Optional: You can add more variables as needed
+    # Store user query and chatbot response if needed
     if "user_query" not in st.session_state:
-        st.session_state.user_query = ""  # Store user query if needed
+        st.session_state.user_query = ""  
     
     if "response" not in st.session_state:
-        st.session_state.response = ""  # Store chatbot response if needed
+        st.session_state.response = ""  
     
-    # Optionally, handle a session state reset (for example, when a new document is uploaded)
+    # Optionally: Prevent re-initialization if already set
+    if "initialized" not in st.session_state:
+        st.session_state.initialized = True
+
+    # Handle session state reset flag (for example, when a new document is uploaded)
     if "reset_session" in st.session_state and st.session_state.reset_session:
         reset_session()
 

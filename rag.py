@@ -1,33 +1,38 @@
 from typing import List, Dict
 import PyPDF2
 import docx
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from sentence_transformers import SentenceTransformer  # More advanced embedding model
+from sentence_transformers import SentenceTransformer
+import nltk
+
+# Initialize the Sentence-BERT model only once
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def read_file(file_path: str) -> str:
     """Read different file formats and return text content."""
-    if file_path.endswith('.pdf'):
-        with open(file_path, 'rb') as file:
-            pdf_reader = PyPDF2.PdfReader(file)
-            text = ' '.join([page.extract_text() for page in pdf_reader.pages])
-    elif file_path.endswith('.docx'):
-        doc = docx.Document(file_path)
-        text = ' '.join([paragraph.text for paragraph in doc.paragraphs])
-    else:  # Assume txt file
-        try:
+    try:
+        if file_path.endswith('.pdf'):
+            with open(file_path, 'rb') as file:
+                pdf_reader = PyPDF2.PdfReader(file)
+                text = ' '.join([page.extract_text() for page in pdf_reader.pages])
+        elif file_path.endswith('.docx'):
+            doc = docx.Document(file_path)
+            text = ' '.join([paragraph.text for paragraph in doc.paragraphs])
+        else:  # Assume txt file
             with open(file_path, 'r', encoding='utf-8') as file:
                 text = file.read()
-        except UnicodeDecodeError:
-            # Try a different encoding if UTF-8 fails
-            with open(file_path, 'r', encoding='latin1') as file:
-                text = file.read()
+    except Exception as e:
+        text = ""
+        print(f"Error reading file {file_path}: {e}")
     return text
 
 def process_document(file_path: str, chunk_size: int = 1000) -> List[str]:
     """Process document and split into chunks."""
     text = read_file(file_path)
+    
+    if not text:
+        return []  # Return empty list if no text was read
     
     # Clean text if necessary (remove extra spaces, line breaks, etc.)
     text = ' '.join(text.split())
@@ -43,18 +48,19 @@ def process_document(file_path: str, chunk_size: int = 1000) -> List[str]:
 
 def create_embeddings(chunks: List[str]) -> Dict:
     """Create embeddings for document chunks using Sentence-BERT."""
-    # Initialize a pre-trained Sentence-BERT model for embeddings
-    model = SentenceTransformer('all-MiniLM-L6-v2')  # A lightweight model suitable for semantic tasks
+    if not chunks:
+        return {}
+    
     embeddings = model.encode(chunks, convert_to_tensor=True)
     
-    # Return embeddings and model for later use
-    return {
-        'embeddings': embeddings
-    }
+    # Return embeddings for later use
+    return {'embeddings': embeddings}
 
 def get_best_matching_chunk(query: str, chunks: List[str], embeddings: Dict) -> str:
     """Find the chunk most relevant to the query using cosine similarity."""
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    if not embeddings:
+        return ""
+    
     query_embedding = model.encode([query], convert_to_tensor=True)
     
     # Calculate cosine similarity between the query and document chunks
@@ -66,7 +72,9 @@ def get_best_matching_chunk(query: str, chunks: List[str], embeddings: Dict) -> 
 
 def find_relevant_chunks(query: str, chunks: List[str], embeddings: Dict, top_k: int = 3) -> List[str]:
     """Find top K relevant chunks based on the query."""
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    if not embeddings:
+        return []
+    
     query_embedding = model.encode([query], convert_to_tensor=True)
     
     # Calculate cosine similarity between the query and document chunks

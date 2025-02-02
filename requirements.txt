@@ -4,3 +4,5 @@ numpy
 python-docx
 PyPDF2
 requests
+sentence-transformers
+ntlk

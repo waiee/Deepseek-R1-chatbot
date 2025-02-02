@@ -3,12 +3,14 @@ import requests
 import re
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+from sentence_transformers import SentenceTransformer
 
 class ChatBot:
     def __init__(self):
         # Initialize Ollama API settings
         self.api_url = "http://localhost:11434/api/generate"
         self.model = "deepseek-r1"
+        self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')  # Reuse the same model
         
     def clean_response(self, text: str) -> str:
         """Clean the response by removing thinking patterns."""
@@ -68,7 +70,7 @@ class ChatBot:
 
 def find_relevant_chunks(query: str, chunks: List[str], embeddings: Dict, top_k: int = 3) -> List[str]:
     """Find most relevant document chunks for the query."""
-    # Create query embedding
+    # Ensure the query is encoded using the same model
     query_embedding = embeddings['vectorizer'].transform([query])
     
     # Calculate similarity
