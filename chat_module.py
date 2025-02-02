@@ -1,36 +1,37 @@
 # chat_module.py
-
 from typing import List, Dict, Optional
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+import requests
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
 class ChatBot:
     def __init__(self):
-        # Initialize DeepSeek model and tokenizer
-        self.model_name = "deepseek-ai/deepseek-coder-6.7b-base"
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_name,
-            torch_dtype=torch.float16,
-            device_map="auto"
-        )
-
+        # Initialize Ollama API settings
+        self.api_url = "http://localhost:11434/api/generate"
+        self.model = "gemma:7b"
+        
     def generate_response(self, prompt: str) -> str:
-        """Generate response using DeepSeek model."""
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        """Generate response using Ollama API."""
+        data = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.7,
+                "top_p": 0.9,
+                "top_k": 40,
+            }
+        }
         
-        outputs = self.model.generate(
-            **inputs,
-            max_length=512,
-            num_return_sequences=1,
-            temperature=0.7,
-            do_sample=True
-        )
-        
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        return response
+        try:
+            response = requests.post(self.api_url, json=data)
+            response.raise_for_status()
+            
+            return response.json()["response"]
+        except requests.exceptions.RequestException as e:
+            return f"Error calling Ollama API: {str(e)}"
+        except (KeyError, IndexError) as e:
+            return f"Error parsing Ollama API response: {str(e)}"
 
 def find_relevant_chunks(query: str, chunks: List[str], embeddings: Dict, top_k: int = 3) -> List[str]:
     """Find most relevant document chunks for the query."""
@@ -64,17 +65,7 @@ Query: {query}
 Please provide a response that incorporates relevant information from the context while maintaining a natural conversational tone."""
     else:
         # If no document context is available, use the query directly
-        prompt = f"Query: {query}\n\nPlease provide a helpful response."
+        prompt = query
     
-    # Generate response using the DeepSeek model
-    try:
-        response = chatbot.generate_response(prompt)
-        
-        # Clean up the response if needed
-        # Remove any system prompts or prefixes that might be in the response
-        if "Query:" in response:
-            response = response.split("Query:")[0].strip()
-        
-        return response
-    except Exception as e:
-        return f"I apologize, but I encountered an error while generating the response: {str(e)}"
+    # Generate response
+    return chatbot.generate_response(prompt)
