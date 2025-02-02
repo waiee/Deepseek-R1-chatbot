@@ -1,9 +1,8 @@
-#rag.py
-
 from typing import List, Dict
 import PyPDF2
 import docx
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
 def read_file(file_path: str) -> str:
@@ -23,19 +22,15 @@ def read_file(file_path: str) -> str:
             # Try a different encoding if UTF-8 fails
             with open(file_path, 'r', encoding='latin1') as file:
                 text = file.read()
-            # You can also try 'ISO-8859-1', 'windows-1252', etc. depending on the file's origin
     return text
-
 
 def process_document(file_path: str, chunk_size: int = 1000) -> List[str]:
     """Process document and split into chunks."""
-    # Read the document
     text = read_file(file_path)
     
-    # Simple chunking by words
+    # Split the text into chunks
     words = text.split()
     chunks = []
-    
     for i in range(0, len(words), chunk_size):
         chunk = ' '.join(words[i:i + chunk_size])
         chunks.append(chunk)
@@ -44,14 +39,32 @@ def process_document(file_path: str, chunk_size: int = 1000) -> List[str]:
 
 def create_embeddings(chunks: List[str]) -> Dict:
     """Create TF-IDF embeddings for document chunks."""
-    # Initialize TF-IDF vectorizer
-    vectorizer = TfidfVectorizer()
-    
-    # Create embeddings
+    vectorizer = TfidfVectorizer(stop_words="english")
     tfidf_matrix = vectorizer.fit_transform(chunks)
     
+    # Return embeddings and vectorizer for later use
     return {
         'vectorizer': vectorizer,
         'embeddings': tfidf_matrix,
         'vocabulary': vectorizer.vocabulary_
     }
+
+def get_best_matching_chunk(query: str, chunks: List[str], embeddings: Dict) -> str:
+    """Find the chunk most relevant to the query using cosine similarity."""
+    # Transform the query into the same vector space as the document chunks
+    query_vector = embeddings['vectorizer'].transform([query])  
+    
+    # Calculate cosine similarity between the query and document chunks
+    similarities = cosine_similarity(query_vector, embeddings['embeddings'])
+    
+    # Find the index of the chunk with the highest similarity
+    best_match_index = similarities.argmax()
+    return chunks[best_match_index]
+
+def find_relevant_chunks(query: str, chunks: List[str], embeddings: Dict, top_k: int = 3) -> List[str]:
+    """Find top K relevant chunks based on the query."""
+    query_vector = embeddings['vectorizer'].transform([query])
+    similarities = cosine_similarity(query_vector, embeddings['embeddings']).flatten()
+    
+    top_indices = np.argsort(similarities)[-top_k:]
+    return [chunks[i] for i in top_indices]

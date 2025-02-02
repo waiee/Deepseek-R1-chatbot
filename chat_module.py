@@ -1,6 +1,6 @@
-# chat_module.py
 from typing import List, Dict, Optional
 import requests
+import re
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
@@ -9,6 +9,33 @@ class ChatBot:
         # Initialize Ollama API settings
         self.api_url = "http://localhost:11434/api/generate"
         self.model = "deepseek-r1"
+        
+    def clean_response(self, text: str) -> str:
+        """Clean the response by removing thinking patterns."""
+        # Remove <think> tags and their content
+        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+        
+        # Remove alternative thinking patterns
+        patterns = [
+            r'\[thinking\].*?\[/thinking\]',
+            r'\(thinking:.*?\)',
+            r'Think:.*?\n',
+            r'Thinking:.*?\n',
+            r'Let me think.*?\n',
+            r'<thinking>.*?</thinking>',
+            r'\[system\].*?\[/system\]',
+            r'<system>.*?</system>',
+            r'System:.*?\n'
+        ]
+        
+        for pattern in patterns:
+            text = re.sub(pattern, '', text, flags=re.DOTALL)
+        
+        # Clean up any extra whitespace
+        text = re.sub(r'\n\s*\n', '\n\n', text)
+        text = text.strip()
+        
+        return text
         
     def generate_response(self, prompt: str) -> str:
         """Generate response using Ollama API."""
@@ -27,7 +54,13 @@ class ChatBot:
             response = requests.post(self.api_url, json=data)
             response.raise_for_status()
             
-            return response.json()["response"]
+            # Get the raw response
+            raw_response = response.json()["response"]
+            
+            # Clean the response by removing any thinking patterns
+            cleaned_response = self.clean_response(raw_response)
+            
+            return cleaned_response
         except requests.exceptions.RequestException as e:
             return f"Error calling Ollama API: {str(e)}"
         except (KeyError, IndexError) as e:
@@ -55,17 +88,27 @@ def get_chat_response(query: str, chunks: Optional[List[str]] = None, embeddings
         
         # Create context-aware prompt
         context = "\n".join(relevant_chunks)
-        prompt = f"""Based on the following context, please respond to the query.
+        prompt = f"""
+You are a helpful assistant trained to provide answers based on the context provided. Below is the relevant context extracted from a document:
 
 Context:
 {context}
 
+The user has asked the following question:
+
 Query: {query}
 
-Please provide a response that incorporates relevant information from the context while maintaining a natural conversational tone."""
+Please respond by analyzing the context above and providing an answer that directly addresses the user's query. Make sure to use information from the provided context and provide a clear, concise, and direct response. Avoid unnecessary filler and be as helpful as possible.
+"""
     else:
         # If no document context is available, use the query directly
-        prompt = query
+        prompt = f"""
+The user has asked the following question:
+
+Query: {query}
+
+Please provide a clear, concise, and direct response.
+"""
     
     # Generate response
     return chatbot.generate_response(prompt)
