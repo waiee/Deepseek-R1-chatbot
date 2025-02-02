@@ -44,7 +44,7 @@ def main():
             st.experimental_rerun()
     
     # Chat interface
-    st.header("Chat")
+    # st.header("Your AI-Assistant")
     
     # Display chat history
     if "messages" in st.session_state and st.session_state.messages:

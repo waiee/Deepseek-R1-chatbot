@@ -3,17 +3,16 @@ import requests
 import re
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 class ChatBot:
     def __init__(self):
         # Initialize Ollama API settings
         self.api_url = "http://localhost:11434/api/generate"
         self.model = "deepseek-r1"
-        # Removed the SentenceTransformer model since we're using TF-IDF now
         
     def clean_response(self, text: str) -> str:
         """Clean the response by removing thinking patterns."""
-        # Remove <think> tags and their content
         text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
         
         # Remove alternative thinking patterns
@@ -67,55 +66,50 @@ class ChatBot:
         except (KeyError, IndexError) as e:
             return f"Error parsing Ollama API response: {str(e)}"
 
-def find_relevant_chunks(query: str, chunks: List[str], embeddings: Dict, top_k: int = 3) -> List[str]:
-    """Find most relevant document chunks for the query."""
-    # Ensure the query is encoded using the same vectorizer
-    query_embedding = embeddings['vectorizer'].transform([query])
+def find_relevant_chunks(query: str, chunks: List[str], vectorizer: TfidfVectorizer, top_k: int = 3) -> List[str]:
+    """Find most relevant document chunks for the query using cosine similarity."""
+    # Vectorize the query and the document chunks
+    query_vec = vectorizer.transform([query])
+    chunk_vecs = vectorizer.transform(chunks)
     
-    # Calculate similarity
-    similarities = cosine_similarity(query_embedding, embeddings['embeddings']).flatten()
+    # Calculate cosine similarities
+    similarities = cosine_similarity(query_vec, chunk_vecs).flatten()
     
-    # Get top k chunks
-    top_indices = np.argsort(similarities)[-top_k:]
+    # Get the indices of the top k relevant chunks
+    top_indices = np.argsort(similarities)[-top_k:][::-1]
     return [chunks[i] for i in top_indices]
 
-def get_chat_response(query: str, chunks: Optional[List[str]] = None, embeddings: Optional[Dict] = None) -> str:
-    """Get chatbot response, incorporating document context if available."""
+def get_chat_response(query: str, chunks: Optional[List[str]] = None, vectorizer: Optional[TfidfVectorizer] = None) -> str:
+    """Get chatbot response incorporating document context if available."""
     chatbot = ChatBot()
     
-    if chunks and embeddings:
-        # Find relevant document chunks
-        relevant_chunks = find_relevant_chunks(query, chunks, embeddings)
-        
-        # Create context-aware prompt
-        context = "\n".join(relevant_chunks)
-        prompt = f"""
-You are a helpful assistant trained to provide answers based on the context provided. Below is the relevant context extracted from a document:
-
-Context:
-{context}
-
-The user has asked the following question:
-
-Query: {query}
-
-Please respond by analyzing the context above and providing an answer that directly addresses the user's query. 
-Make sure to use information from the provided context and provide a clear, concise, and direct response.
-Avoid unnecessary filler and be as helpful as possible.
-"""
-    else:
-        # If no document context is available, use the query directly
-        prompt = f"""
-The user has asked the following question:
-
-Query: {query}
-
-Response in natural and kind way. Use your general knowledge.
-Please respond by analyzing the context above and providing an answer that directly addresses the user's query. 
-Make sure to provide a clear, concise, and direct response. List out the points if needed.
-Avoid unnecessary filler and be as helpful as possible.
-
-"""
+    # Handle casual greetings or simple questions
+    greetings = ['hello', 'hi', 'hey', 'good morning', 'good evening', 'good night', 'howdy']
+    query_lower = query.lower().strip()
     
-    # Generate response
+    # Create the base prompt template
+    prompt = f"""
+You are a helpful assistant with access to a variety of sources. Your goal is to provide accurate, informative, and concise answers to the user's query.
+
+If the user has asked a greeting or casual question (e.g., 'Hello', 'Hi'), please provide a friendly response.
+
+If the user has asked a more specific question, please use the relevant document context below to answer the query, if available.
+
+Context (from documents):
+{('\n'.join(find_relevant_chunks(query, chunks, vectorizer)) if chunks and vectorizer else 'No document context available.')}
+
+General Knowledge Response:
+If no relevant document context is available or if the context is insufficient, use your general knowledge to answer the user's query. 
+Provide as much accurate detail as possible.
+
+Always answer in friendly way.
+
+Query: {query}
+Answer:
+"""
+
+    # Generate the response using the combined prompt
     return chatbot.generate_response(prompt)
+
+
+

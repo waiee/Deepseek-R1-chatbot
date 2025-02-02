@@ -16,12 +16,19 @@ def read_file(file_path: str) -> str:
             doc = docx.Document(file_path)
             text = ' '.join([paragraph.text for paragraph in doc.paragraphs])
         else:  # Assume txt file
-            with open(file_path, 'r', encoding='utf-8') as file:
-                text = file.read()
+            # Try reading with 'utf-8' first
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    text = file.read()
+            except UnicodeDecodeError:
+                # If utf-8 fails, try 'latin-1' or 'ISO-8859-1'
+                with open(file_path, 'r', encoding='latin-1') as file:
+                    text = file.read()
     except Exception as e:
         text = ""
         print(f"Error reading file {file_path}: {e}")
     return text
+
 
 def process_document(file_path: str, chunk_size: int = 1000) -> List[str]:
     """Process document and split into chunks."""

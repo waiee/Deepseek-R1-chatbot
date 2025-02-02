@@ -1,6 +1,4 @@
 import streamlit as st
-from sklearn.feature_extraction.text import TfidfVectorizer
-from typing import List
 
 def initialize_session_state():
     """Initialize session state variables if they are not already initialized."""
@@ -41,14 +39,5 @@ def reset_session():
     st.session_state.response = ""
     st.session_state.reset_session = False  # Reset the flag after resetting
 
-def chunk_and_embed_document(text: str, chunk_size: int = 1000):
-    """Chunk document text and create embeddings using TF-IDF."""
-    # Split text into chunks of the specified size
-    words = text.split()
-    chunks = [' '.join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
-    
-    # Use TF-IDF to create embeddings
-    vectorizer = TfidfVectorizer()
-    embeddings = vectorizer.fit_transform(chunks)
-    
-    return chunks, embeddings
+    # Use st.rerun() instead of experimental_rerun()
+    st.rerun()
