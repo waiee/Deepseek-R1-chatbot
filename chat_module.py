@@ -3,14 +3,13 @@ import requests
 import re
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from sentence_transformers import SentenceTransformer
 
 class ChatBot:
     def __init__(self):
         # Initialize Ollama API settings
         self.api_url = "http://localhost:11434/api/generate"
         self.model = "deepseek-r1"
-        self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')  # Reuse the same model
+        # Removed the SentenceTransformer model since we're using TF-IDF now
         
     def clean_response(self, text: str) -> str:
         """Clean the response by removing thinking patterns."""
@@ -70,7 +69,7 @@ class ChatBot:
 
 def find_relevant_chunks(query: str, chunks: List[str], embeddings: Dict, top_k: int = 3) -> List[str]:
     """Find most relevant document chunks for the query."""
-    # Ensure the query is encoded using the same model
+    # Ensure the query is encoded using the same vectorizer
     query_embedding = embeddings['vectorizer'].transform([query])
     
     # Calculate similarity
@@ -100,7 +99,9 @@ The user has asked the following question:
 
 Query: {query}
 
-Please respond by analyzing the context above and providing an answer that directly addresses the user's query. Make sure to use information from the provided context and provide a clear, concise, and direct response. Avoid unnecessary filler and be as helpful as possible.
+Please respond by analyzing the context above and providing an answer that directly addresses the user's query. 
+Make sure to use information from the provided context and provide a clear, concise, and direct response.
+Avoid unnecessary filler and be as helpful as possible.
 """
     else:
         # If no document context is available, use the query directly
@@ -109,7 +110,11 @@ The user has asked the following question:
 
 Query: {query}
 
-Please provide a clear, concise, and direct response.
+Response in natural and kind way. Use your general knowledge.
+Please respond by analyzing the context above and providing an answer that directly addresses the user's query. 
+Make sure to provide a clear, concise, and direct response. List out the points if needed.
+Avoid unnecessary filler and be as helpful as possible.
+
 """
     
     # Generate response

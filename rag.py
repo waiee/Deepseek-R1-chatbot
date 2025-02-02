@@ -1,13 +1,9 @@
 from typing import List, Dict
 import PyPDF2
 import docx
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from sentence_transformers import SentenceTransformer
-import nltk
-
-# Initialize the Sentence-BERT model only once
-model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def read_file(file_path: str) -> str:
     """Read different file formats and return text content."""
@@ -47,21 +43,26 @@ def process_document(file_path: str, chunk_size: int = 1000) -> List[str]:
     return chunks
 
 def create_embeddings(chunks: List[str]) -> Dict:
-    """Create embeddings for document chunks using Sentence-BERT."""
+    """Create embeddings for document chunks using TF-IDF."""
     if not chunks:
         return {}
     
-    embeddings = model.encode(chunks, convert_to_tensor=True)
+    # Initialize TF-IDF vectorizer
+    vectorizer = TfidfVectorizer(stop_words='english')
     
-    # Return embeddings for later use
-    return {'embeddings': embeddings}
+    # Fit and transform the document chunks into a document-term matrix
+    embeddings = vectorizer.fit_transform(chunks)
+    
+    # Return embeddings and the vectorizer for later use
+    return {'embeddings': embeddings, 'vectorizer': vectorizer}
 
 def get_best_matching_chunk(query: str, chunks: List[str], embeddings: Dict) -> str:
     """Find the chunk most relevant to the query using cosine similarity."""
     if not embeddings:
         return ""
     
-    query_embedding = model.encode([query], convert_to_tensor=True)
+    # Transform the query into a vector using the same vectorizer
+    query_embedding = embeddings['vectorizer'].transform([query])
     
     # Calculate cosine similarity between the query and document chunks
     similarities = cosine_similarity(query_embedding, embeddings['embeddings'])
@@ -75,7 +76,8 @@ def find_relevant_chunks(query: str, chunks: List[str], embeddings: Dict, top_k:
     if not embeddings:
         return []
     
-    query_embedding = model.encode([query], convert_to_tensor=True)
+    # Transform the query into a vector using the same vectorizer
+    query_embedding = embeddings['vectorizer'].transform([query])
     
     # Calculate cosine similarity between the query and document chunks
     similarities = cosine_similarity(query_embedding, embeddings['embeddings']).flatten()
