@@ -94,4 +94,6 @@ def find_relevant_chunks(query: str, chunks: List[str], embeddings: Dict, top_k:
     
     # Get top K chunks
     top_indices = np.argsort(similarities)[-top_k:]
+    print(f"Top {top_k} matching chunks: {[chunks[i] for i in top_indices]}")  # Debugging line
     return [chunks[i] for i in top_indices]
+

@@ -31,6 +31,7 @@ def main():
             # Process document and create embeddings
             chunks = process_document(tmp_file_path)
             embeddings = create_embeddings(chunks)
+            print(embeddings.keys())  # Ensure this prints 'vectorizer' and 'embeddings'
             
             # Store in session state
             st.session_state.document_chunks = chunks
