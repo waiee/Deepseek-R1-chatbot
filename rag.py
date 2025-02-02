@@ -4,6 +4,7 @@ import docx
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+from sentence_transformers import SentenceTransformer  # More advanced embedding model
 
 def read_file(file_path: str) -> str:
     """Read different file formats and return text content."""
@@ -28,6 +29,9 @@ def process_document(file_path: str, chunk_size: int = 1000) -> List[str]:
     """Process document and split into chunks."""
     text = read_file(file_path)
     
+    # Clean text if necessary (remove extra spaces, line breaks, etc.)
+    text = ' '.join(text.split())
+    
     # Split the text into chunks
     words = text.split()
     chunks = []
@@ -38,24 +42,23 @@ def process_document(file_path: str, chunk_size: int = 1000) -> List[str]:
     return chunks
 
 def create_embeddings(chunks: List[str]) -> Dict:
-    """Create TF-IDF embeddings for document chunks."""
-    vectorizer = TfidfVectorizer(stop_words="english")
-    tfidf_matrix = vectorizer.fit_transform(chunks)
+    """Create embeddings for document chunks using Sentence-BERT."""
+    # Initialize a pre-trained Sentence-BERT model for embeddings
+    model = SentenceTransformer('all-MiniLM-L6-v2')  # A lightweight model suitable for semantic tasks
+    embeddings = model.encode(chunks, convert_to_tensor=True)
     
-    # Return embeddings and vectorizer for later use
+    # Return embeddings and model for later use
     return {
-        'vectorizer': vectorizer,
-        'embeddings': tfidf_matrix,
-        'vocabulary': vectorizer.vocabulary_
+        'embeddings': embeddings
     }
 
 def get_best_matching_chunk(query: str, chunks: List[str], embeddings: Dict) -> str:
     """Find the chunk most relevant to the query using cosine similarity."""
-    # Transform the query into the same vector space as the document chunks
-    query_vector = embeddings['vectorizer'].transform([query])  
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    query_embedding = model.encode([query], convert_to_tensor=True)
     
     # Calculate cosine similarity between the query and document chunks
-    similarities = cosine_similarity(query_vector, embeddings['embeddings'])
+    similarities = cosine_similarity(query_embedding, embeddings['embeddings'])
     
     # Find the index of the chunk with the highest similarity
     best_match_index = similarities.argmax()
@@ -63,8 +66,12 @@ def get_best_matching_chunk(query: str, chunks: List[str], embeddings: Dict) -> 
 
 def find_relevant_chunks(query: str, chunks: List[str], embeddings: Dict, top_k: int = 3) -> List[str]:
     """Find top K relevant chunks based on the query."""
-    query_vector = embeddings['vectorizer'].transform([query])
-    similarities = cosine_similarity(query_vector, embeddings['embeddings']).flatten()
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    query_embedding = model.encode([query], convert_to_tensor=True)
     
+    # Calculate cosine similarity between the query and document chunks
+    similarities = cosine_similarity(query_embedding, embeddings['embeddings']).flatten()
+    
+    # Get top K chunks
     top_indices = np.argsort(similarities)[-top_k:]
     return [chunks[i] for i in top_indices]
