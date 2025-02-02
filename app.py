@@ -1,12 +1,12 @@
-# app.py
 import streamlit as st
 from rag import process_document, create_embeddings
 from chat_module import get_chat_response
 from utils import initialize_session_state
 import tempfile
+import re  # For regular expression
 
 def main():
-    st.title("DeepSeek Chat Assistant")
+    st.title("Waiee's Chat Assistant")
     
     # Initialize session state
     initialize_session_state()
@@ -54,10 +54,14 @@ def main():
                 st.session_state.document_chunks if hasattr(st.session_state, 'document_chunks') else None,
                 st.session_state.document_embeddings if hasattr(st.session_state, 'document_embeddings') else None
             )
-            st.markdown(response)
+            
+            # Remove <think> tags from response
+            cleaned_response = re.sub(r'<think>.*?</think>', '', response)
+            
+            st.markdown(cleaned_response)
             
         # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.messages.append({"role": "assistant", "content": cleaned_response})
 
 if __name__ == "__main__":
     main()

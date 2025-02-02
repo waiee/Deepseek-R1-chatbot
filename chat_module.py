@@ -8,7 +8,7 @@ class ChatBot:
     def __init__(self):
         # Initialize Ollama API settings
         self.api_url = "http://localhost:11434/api/generate"
-        self.model = "gemma:7b"
+        self.model = "deepseek-r1"
         
     def generate_response(self, prompt: str) -> str:
         """Generate response using Ollama API."""
