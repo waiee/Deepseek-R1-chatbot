@@ -1,6 +1,6 @@
 # app.py
 import streamlit as st
-from document_processor import process_document, create_embeddings
+from rag import process_document, create_embeddings
 from chat_module import get_chat_response
 from utils import initialize_session_state
 import tempfile
@@ -14,7 +14,7 @@ def main():
     # Sidebar for document upload
     with st.sidebar:
         st.header("Document Upload")
-        uploaded_file = st.file_uploader("Upload a document", type=["txt", "pdf", "docx"])
+        uploaded_file = st.file_uploader("Upload your document here", type=["txt", "pdf", "docx"])
         
         if uploaded_file:
             # Create a temporary file
