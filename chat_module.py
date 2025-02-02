@@ -82,34 +82,39 @@ def find_relevant_chunks(query: str, chunks: List[str], vectorizer: TfidfVectori
 def get_chat_response(query: str, chunks: Optional[List[str]] = None, vectorizer: Optional[TfidfVectorizer] = None) -> str:
     """Get chatbot response incorporating document context if available."""
     chatbot = ChatBot()
-    
+
     # Handle casual greetings or simple questions
     greetings = ['hello', 'hi', 'hey', 'good morning', 'good evening', 'good night', 'howdy']
     query_lower = query.lower().strip()
     
+    # Check if the query is a greeting or casual question
+    if any(greeting in query_lower for greeting in greetings):
+        return f"Hello! How can I assist you today?"
+
+    # If document context is available, find relevant chunks
+    context = '\n'.join(find_relevant_chunks(query, chunks, vectorizer)) if chunks and vectorizer else 'No document context available.'
+
     # Create the base prompt template
     prompt = f"""
 You are a helpful assistant with access to a variety of sources. Your goal is to provide accurate, informative, and concise answers to the user's query.
 
 If the user has asked a greeting or casual question (e.g., 'Hello', 'Hi'), please provide a friendly response.
-
 If the user has asked a more specific question, please use the relevant document context below to answer the query, if available.
 
 Context (from documents):
-{('\n'.join(find_relevant_chunks(query, chunks, vectorizer)) if chunks and vectorizer else 'No document context available.')}
+{context}
 
 General Knowledge Response:
 If no relevant document context is available or if the context is insufficient, use your general knowledge to answer the user's query. 
-Provide as much accurate detail as possible.
+Provide as much accurate detail as possible. Response in friendly tone.
 
-Always answer in friendly way.
-
-Query: {query}
-Answer:
+Query (from user): {query}
 """
 
     # Generate the response using the combined prompt
     return chatbot.generate_response(prompt)
+
+
 
 
 
