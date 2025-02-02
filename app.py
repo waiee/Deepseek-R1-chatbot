@@ -6,7 +6,7 @@ import tempfile
 import re  # For regular expression
 
 def main():
-    st.title("Waiee's Chat Assistant")
+    st.title("Deepseek-R1 Chat Assistant")
     
     # Initialize session state
     initialize_session_state()
