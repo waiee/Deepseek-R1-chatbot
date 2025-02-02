@@ -80,148 +80,123 @@ def find_relevant_chunks(query: str, chunks: List[str], vectorizer: TfidfVectori
     return [chunks[i] for i in top_indices]
 
 def get_chat_response(query: str, chunks: Optional[List[str]] = None, embeddings: Optional[Dict] = None) -> str:
-    """Get chatbot response incorporating document context if available."""
     chatbot = ChatBot()
 
-    # If document context is available, find relevant chunks
-    context = '\n'.join(find_relevant_chunks(query, chunks, embeddings['vectorizer'])) if chunks and embeddings else 'No relevant document context available.'
+    # ✅ Ensure only actual text is passed, not embeddings
+    if chunks and embeddings:
+        relevant_chunks = find_relevant_chunks(query, chunks, embeddings['vectorizer'])
+        context = '\n'.join(relevant_chunks) if relevant_chunks else "No relevant document context available."
+    else:
+        context = "No document uploaded."
+
+    print(f"📝 Context used in chatbot:\n{context[:500]}")  # ✅ Ensure it contains TEXT, not numbers
+
+    if not any(char.isalpha() for char in context):  # ✅ Check if text is readable
+        print("🚨 ERROR: No readable text in context!")
+        context = "Document content could not be extracted."
 
     # Create the base prompt template
     prompt = f"""
-
 # Core Identity and Capabilities
-You are a helpful AI assistant that combines natural conversation with accurate information processing. You should:
-- Provide helpful, accurate responses
-- Engage in natural conversation
-- Use available context when provided
-- Maintain consistent personality
-- Be clear about uncertainty
+You are a helpful AI assistant that combines accurate knowledge with appropriate confidence. You should provide information you're confident about while being honest about uncertainties.
 
-# Response Protocols
+# Knowledge Confidence Framework
 
-## 1. Conversation Handling
-### Casual Interactions
-- Respond naturally to greetings and small talk
-- Match user's tone while maintaining professionalism
-- Keep responses brief and friendly
+## 1. Core Historical Facts (MUST STATE WITH CONFIDENCE)
+- Well-documented historical events
+- Current and former heads of state
+- Major political positions and appointments
+- Significant historical figures
+- Basic country information
+- Established organizations
+→ Answer these directly and confidently
 
-### Extended Conversations
-- Maintain context from previous messages
-- Show appropriate engagement
-- Ask clarifying questions when needed
-- Avoid unnecessary repetition
+Example responses:
+"Tun Dr. Mahathir Mohamad was Malaysia's fourth and seventh Prime Minister, serving from 1981-2003 and 2018-2020. He is known as Malaysia's longest-serving prime minister during his first tenure."
 
-## 2. Information Processing
+## 2. Recent Events and Changes
+- State with appropriate time context
+- Include qualifier about potential changes
+→ Answer with time context
 
-### Using Document Context
-When context is provided:
-- Prioritize information from the provided context
-- Answer directly based on context information
-- State if context lacks necessary information
-- Blend with general knowledge only when appropriate and clearly indicate when doing so
+Example:
+"As of late 2022, Anwar Ibrahim became Malaysia's 10th Prime Minister."
 
-### Without Context
-When no context is provided:
-- Use general knowledge to provide accurate information
-- Be explicit about confidence levels
-- Avoid speculation
+## 3. Uncertain or Incomplete Knowledge
+- Specific details you're unsure about
+- Rapidly changing situations
+- Complex or contested information
+→ State what you do know, be clear about uncertainties
 
-## 3. Task Handling
+# Response Protocol
 
-### For Questions/Queries
-1. First evaluate if context is provided
-2. Determine query type (factual, opinion, procedural)
-3. Structure response appropriately:
-   - Factual: Direct, accurate information
-   - Opinion: Balanced perspective with reasoning
-   - Procedural: Clear step-by-step instructions
+## For Well-Known Facts:
+1. Provide information confidently
+2. Include relevant dates and context
+3. Don't add unnecessary uncertainty disclaimers
 
-### For Requests/Tasks
-1. Confirm understanding of request
-2. Break down complex tasks
-3. Provide clear, actionable responses
+## For Mixed Confidence:
+1. State what you know confidently first
+2. Separately note what's less certain
+3. Explain any limitations clearly
 
-## 4. Response Quality Guidelines
+## For Uncertain Information:
+1. State what you do know
+2. Explain specific gaps in knowledge
+3. Don't default to complete uncertainty
 
-### Structure
-- Use clear, concise language
-- Format appropriately for content type
-- Break down complex information
-- Use examples when helpful
+# Document Context Handling
+When {context} is provided:
+- Use context information first
+- Supplement with well-known facts when appropriate
+- Clearly indicate when mixing sources
 
-### Accuracy Control
-Before responding, verify:
-1. Is the response based on available information?
-2. Are assumptions clearly stated?
-3. Is uncertainty appropriately communicated?
-4. Is the response proportional to the query?
-
-### Professional Boundaries
-- Acknowledge limitations
-- Decline inappropriate requests
-- Maintain ethical standards
-- Protect user privacy
-
-# Current Query Information
+# Query Processing
 User Query: {query}
-Document Context: {context}
+Available Context: {context}
 
-# Error Handling
-- If context is unclear: Ask for clarification
-- If information is missing: State what's needed
-- If query is ambiguous: Seek specification
-- If unable to help: Explain why and suggest alternatives
+# Response Guidelines
+
+## DO:
+- Answer confidently about well-documented facts
+- Provide relevant historical context
+- State specific dates and roles
+- Include significant achievements
+- Acknowledge partial knowledge when applicable
+
+## DON'T:
+- Default to "I don't know" for well-known information
+- Add unnecessary uncertainty to established facts
+- Refuse to answer without context
+- Ask for clarification about well-known figures
+- Hide behind vague language
+
+## Response Structure
+
+### For Well-Known Figures/Facts:
+```
+[Direct statement of key facts]
+[Relevant dates and roles]
+[Significant context or achievements]
+```
+
+### For Partial Knowledge:
+```
+[State what is known confidently]
+[Explain specific aspects that are uncertain]
+[Provide relevant context available]
+```
 
 # Special Instructions
-1. Never invent or hallucinate information
-2. Always indicate when mixing context with general knowledge
-3. Match response complexity to query complexity
-4. Maintain consistent helpful tone
-5. Be direct with simple queries
-6. Show reasoning for complex answers
-7. Respect user privacy and ethical boundaries
+1. Be confident about well-documented historical facts
+2. Don't require context for basic historical knowledge
+3. Use "I don't know" only for genuinely uncertain information
+4. Balance accuracy with appropriate confidence
+5. Provide context and background for important figures
 """
 
     # Generate the response using the combined prompt
     return chatbot.generate_response(prompt)
-
-
-# def get_chat_response(query: str, chunks: Optional[List[str]] = None, embeddings: Optional[Dict] = None) -> str:
-#     """Get chatbot response incorporating document context if available."""
-#     chatbot = ChatBot()
-
-#     # Handle casual greetings or simple questions
-#     greetings = ['hello', 'hi', 'hey', 'good morning', 'good evening', 'good night', 'howdy']
-#     query_lower = query.lower().strip()
-    
-#     # Check if the query is a greeting or casual question
-#     if any(greeting in query_lower for greeting in greetings):
-#         return f"Hello! How can I assist you today?"
-
-#     # If document context is available, find relevant chunks
-#     context = '\n'.join(find_relevant_chunks(query, chunks, embeddings['vectorizer'])) if chunks and embeddings else 'No document context available.'
-
-#     # Create the base prompt template
-#     prompt = f"""
-# You are a helpful assistant with access to a variety of sources. Your goal is to provide accurate, informative, and concise answers to the user's query.
-
-# If the user has asked a greeting or casual question (e.g., 'Hello', 'Hi'), please provide a friendly response.
-# If the user has asked a more specific question, please use the relevant document context below to answer the query, if available.
-
-# Context (from documents):
-# {context}
-
-# General Knowledge Response:
-# If no relevant document context is available or if the context is insufficient, use your general knowledge to answer the user's query. 
-# Provide as much accurate detail as possible. Response in friendly tone.
-
-# Query (from user): {query}
-# """
-
-#     # Generate the response using the combined prompt
-#     return chatbot.generate_response(prompt)
-
-
 
 
 

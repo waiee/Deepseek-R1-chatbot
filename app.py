@@ -31,7 +31,8 @@ def main():
             # Process document and create embeddings
             chunks = process_document(tmp_file_path)
             embeddings = create_embeddings(chunks)
-            print(embeddings.keys())  # Ensure this prints 'vectorizer' and 'embeddings'
+            print(embeddings.keys()) 
+
             
             # Store in session state
             st.session_state.document_chunks = chunks
@@ -61,7 +62,7 @@ def main():
         with st.chat_message("user"):
             st.markdown(prompt)
         
-        if hasattr(st.session_state, 'document_chunks') and st.session_state.document_chunks:
+        if hasattr(st.session_state, 'document_embeddings') and st.session_state.document_embeddings:
             # Get bot response using the document context
             response = get_chat_response(
                 prompt, 
