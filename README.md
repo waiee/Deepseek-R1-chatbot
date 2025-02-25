@@ -1,2 +1,2 @@
 # huggingface-chatbot
- first try deploy simple LLM chatbot,
+will update soon once im free
