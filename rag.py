@@ -8,8 +8,6 @@ import numpy as np
 from typing import List, Dict
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pdfplumber
-
-import pdfplumber
 import pytesseract
 from pdf2image import convert_from_path
 from PIL import Image
