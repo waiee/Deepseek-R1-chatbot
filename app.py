@@ -41,38 +41,33 @@ def main():
             initialize_session_state()
             st.experimental_rerun()
     
-    # Chat interface
-    # st.header("Your AI-Assistant")
+    ### Chat interface ###
     
-    # Display chat history
+    # chat history
     if "messages" in st.session_state and st.session_state.messages:
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
     
-    # Chat input
+    # chat input
     if prompt := st.chat_input("What would you like to know?"):
-        # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         
         with st.chat_message("user"):
             st.markdown(prompt)
         
         if hasattr(st.session_state, 'document_embeddings') and st.session_state.document_embeddings:
-            # Get bot response using the document context
             response = get_chat_response(
                 prompt, 
                 st.session_state.document_chunks,
                 st.session_state.document_embeddings
             )
         else:
-            # If no document context is available, answer based on general knowledge
             response = get_chat_response(prompt)
         
         with st.chat_message("assistant"):
             st.markdown(response)
         
-        # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
 
 if __name__ == "__main__":
