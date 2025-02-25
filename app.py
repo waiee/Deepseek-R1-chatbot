@@ -7,39 +7,35 @@ import tempfile
 def main():
     st.title("Deepseek-R1 Chat Assistant")
     
-    # Initialize session state
     initialize_session_state()
     
-    # Sidebar for document upload
+    # sidebar doc upload
     with st.sidebar:
         st.header("Document Upload")
         
         uploaded_file = st.file_uploader("Upload your document here", type=["txt", "pdf", "docx"])
         
-        # Reset session state when a new document is uploaded
+        # reset session state
         if uploaded_file:
-            # Reset session state to avoid conflicts with new document uploads
+            # reset session state to avoid conflicts
             if "reset_session" not in st.session_state or st.session_state.reset_session:
                 st.session_state.reset_session = False
                 initialize_session_state()
 
-            # Create a temporary file
+            # temporary file
             with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
                 tmp_file.write(uploaded_file.getvalue())
                 tmp_file_path = tmp_file.name
             
-            # Process document and create embeddings
+            # process document and create embeddings
             chunks = process_document(tmp_file_path)
             embeddings = create_embeddings(chunks)
             print(embeddings.keys()) 
 
-            
-            # Store in session state
             st.session_state.document_chunks = chunks
             st.session_state.document_embeddings = embeddings
             st.success("Document processed successfully!")
         
-        # Reset session button
         if st.button("Reset Session"):
             st.session_state.reset_session = True
             initialize_session_state()

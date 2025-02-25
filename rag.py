@@ -19,11 +19,11 @@ def read_file(file_path: str) -> str:
 
     try:
         if file_path.endswith('.pdf'):
-            # ✅ Step 1: Try extracting text normally (works for text-based PDFs)
+            # extract normally
             with pdfplumber.open(file_path) as pdf:
                 text = " ".join([page.extract_text() or '' for page in pdf.pages if page.extract_text()])
             
-            # ✅ Step 2: If no text was found, use OCR (for image-based PDFs)
+            # ocr
             if not text.strip():
                 print("⚠️ No text found in PDF. Using OCR...")
                 images = convert_from_path(file_path)
@@ -33,7 +33,7 @@ def read_file(file_path: str) -> str:
             doc = docx.Document(file_path)
             text = " ".join([paragraph.text for paragraph in doc.paragraphs])
 
-        else:  # ✅ Handle TXT file
+        else:  # txt file
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     text = file.read()
@@ -44,7 +44,7 @@ def read_file(file_path: str) -> str:
     except Exception as e:
         print(f"❌ Error reading file {file_path}: {e}")
 
-    print(f"🔍 Extracted text preview:\n{text[:500]}")  # ✅ Debugging: Print first 500 characters
+    print(f"🔍 Extracted text preview:\n{text[:500]}")  # debugging
     return text
 
 
@@ -56,10 +56,10 @@ def process_document(file_path: str, chunk_size: int = 1000) -> List[str]:
         print("🚨 ERROR: No text extracted from document.")
         return []
 
-    # ✅ Clean text (remove extra spaces, new lines)
+    # clean text
     text = " ".join(text.split())
 
-    # ✅ Split into chunks of `chunk_size` words
+    # chunking
     words = text.split()
     chunks = [" ".join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
 
@@ -72,13 +72,13 @@ def create_embeddings(chunks: List[str]) -> Dict:
     if not chunks:
         return {}
     
-    # Initialize TF-IDF vectorizer
+    # TF-IDF vectorizer
     vectorizer = TfidfVectorizer(stop_words='english')
     
-    # Fit and transform the document chunks into a document-term matrix
+    # fit & transform the document chunks into a document-term matrix
     embeddings = vectorizer.fit_transform(chunks)
     
-    # Return embeddings and the vectorizer for later use
+    # return embeddings,vectorizer
     return {'embeddings': embeddings, 'vectorizer': vectorizer}
 
 def get_best_matching_chunk(query: str, chunks: List[str], embeddings: Dict) -> str:
@@ -86,13 +86,13 @@ def get_best_matching_chunk(query: str, chunks: List[str], embeddings: Dict) -> 
     if not embeddings:
         return ""
     
-    # Transform the query into a vector using the same vectorizer
+    # transform the query into a vector using the same vectorizer
     query_embedding = embeddings['vectorizer'].transform([query])
     
-    # Calculate cosine similarity between the query and document chunks
+    #  cosine similarity
     similarities = cosine_similarity(query_embedding, embeddings['embeddings'])
     
-    # Find the index of the chunk with the highest similarity
+    # chunk with the highest similarity
     best_match_index = similarities.argmax()
     return chunks[best_match_index]
 
@@ -104,9 +104,9 @@ def find_relevant_chunks(query: str, chunks: List[str], embeddings: Dict, top_k:
     similarities = cosine_similarity(query_embedding, embeddings['embeddings']).flatten()
     top_indices = np.argsort(similarities)[-top_k:]
 
-    selected_chunks = [chunks[i] for i in top_indices]  # Ensure text is returned
+    selected_chunks = [chunks[i] for i in top_indices] 
 
-    print(f"📌 Retrieved text chunks:\n{selected_chunks[:3]}")  # Debugging
+    print(f"📌 Retrieved text chunks:\n{selected_chunks[:3]}")
 
     return selected_chunks
 

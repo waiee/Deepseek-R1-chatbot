@@ -7,7 +7,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 class ChatBot:
     def __init__(self):
-        # Initialize Ollama API settings
         self.api_url = "http://localhost:11434/api/generate"
         self.model = "deepseek-r1"
         
@@ -15,7 +14,6 @@ class ChatBot:
         """Clean the response by removing thinking patterns."""
         text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
         
-        # Remove alternative thinking patterns
         patterns = [
             r'\[thinking\].*?\[/thinking\]',
             r'\(thinking:.*?\)',
@@ -30,8 +28,7 @@ class ChatBot:
         
         for pattern in patterns:
             text = re.sub(pattern, '', text, flags=re.DOTALL)
-        
-        # Clean up any extra whitespace
+
         text = re.sub(r'\n\s*\n', '\n\n', text)
         text = text.strip()
         
@@ -54,10 +51,8 @@ class ChatBot:
             response = requests.post(self.api_url, json=data)
             response.raise_for_status()
             
-            # Get the raw response
             raw_response = response.json()["response"]
             
-            # Clean the response by removing any thinking patterns
             cleaned_response = self.clean_response(raw_response)
             
             return cleaned_response
@@ -68,34 +63,34 @@ class ChatBot:
 
 def find_relevant_chunks(query: str, chunks: List[str], vectorizer: TfidfVectorizer, top_k: int = 3) -> List[str]:
     """Find most relevant document chunks for the query using cosine similarity."""
-    # Vectorize the query and the document chunks
+    # vectorize the query, document chunks
     query_vec = vectorizer.transform([query])
     chunk_vecs = vectorizer.transform(chunks)
     
-    # Calculate cosine similarities
+    # cosine similarities
     similarities = cosine_similarity(query_vec, chunk_vecs).flatten()
     
-    # Get the indices of the top k relevant chunks
+    # top k relevant chunks
     top_indices = np.argsort(similarities)[-top_k:][::-1]
     return [chunks[i] for i in top_indices]
 
 def get_chat_response(query: str, chunks: Optional[List[str]] = None, embeddings: Optional[Dict] = None) -> str:
     chatbot = ChatBot()
 
-    # ✅ Ensure only actual text is passed, not embeddings
+    # ensure only actual text is passed, not embeddings
     if chunks and embeddings:
         relevant_chunks = find_relevant_chunks(query, chunks, embeddings['vectorizer'])
         context = '\n'.join(relevant_chunks) if relevant_chunks else "No relevant document context available."
     else:
         context = "No document uploaded."
 
-    print(f"📝 Context used in chatbot:\n{context[:500]}")  # ✅ Ensure it contains TEXT, not numbers
+    print(f"📝 Context used in chatbot:\n{context[:500]}") 
 
-    if not any(char.isalpha() for char in context):  # ✅ Check if text is readable
+    if not any(char.isalpha() for char in context): 
         print("🚨 ERROR: No readable text in context!")
         context = "Document content could not be extracted."
 
-    # Create the base prompt template
+    # prompt template, adjust here
     prompt = f"""
 # Core Identity and Capabilities
 You are a helpful AI assistant that combines accurate knowledge with appropriate confidence. You should provide information you're confident about while being honest about uncertainties.
@@ -195,7 +190,6 @@ Available Context: {context}
 5. Provide context and background for important figures
 """
 
-    # Generate the response using the combined prompt
     return chatbot.generate_response(prompt)
 
 
